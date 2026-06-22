@@ -1,0 +1,47 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/shared",
+    "crates/backend",
+    "crates/bevy-visualizer",
+    "tauri-app/src-tauri",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Home Visual Team"]
+
+[workspace.dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Shared crate
+shared = { path = "crates/shared" }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Date/time
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUID
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Error handling
+thiserror = "2"
+anyhow = "1"
+
+# Profiles for WASM builds
+[profile.wasm-release]
+inherits = "release"
+opt-level = "s"
+lto = true
+strip = "debuginfo"
+codegen-units = 1

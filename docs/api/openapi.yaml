@@ -1,0 +1,1290 @@
+openapi: "3.0.3"
+
+info:
+  title: Home Visual API
+  version: "0.1.0"
+  description: |
+    REST API for the Home Visual smart-home 2D visualizer and controller.
+
+    Manage homes, rooms, devices, robot vacuum tasks, scenes, and automations.
+    All mutating endpoints require a valid JWT bearer token obtained via the
+    `/api/auth/login` endpoint.
+  contact:
+    name: Home Visual Team
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+# ---------------------------------------------------------------------------
+# Security
+# ---------------------------------------------------------------------------
+security:
+  - BearerAuth: []
+
+components:
+  # ---- Security Schemes ---------------------------------------------------
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JSON Web Token issued by `/api/auth/login`.
+
+  # ---- Schemas -------------------------------------------------------------
+  schemas:
+    # — Authentication -------------------------------------------------------
+    RegisterRequest:
+      type: object
+      required: [email, password, name]
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: "s3cur3Pa$$"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Alice
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          example: "s3cur3Pa$$"
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT access token.
+          example: eyJhbGciOiJIUzI1NiIs...
+        user:
+          $ref: "#/components/schemas/User"
+
+    # — User -----------------------------------------------------------------
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 665f1a2b3c4d5e6f7a8b9c0d
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        name:
+          type: string
+          example: Alice
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    # — Home -----------------------------------------------------------------
+    Home:
+      type: object
+      properties:
+        id:
+          type: string
+          example: 665f1a2b3c4d5e6f7a8b9c0d
+        owner_id:
+          type: string
+        name:
+          type: string
+          example: My Apartment
+        address:
+          type: string
+          example: "123 Main St, Apt 4B"
+        width_cm:
+          type: number
+          format: float
+          description: Floorplan width in centimetres.
+          example: 1200.0
+        height_cm:
+          type: number
+          format: float
+          description: Floorplan height in centimetres.
+          example: 800.0
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateHomeRequest:
+      type: object
+      required: [name, width_cm, height_cm]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          example: My Apartment
+        address:
+          type: string
+          example: "123 Main St, Apt 4B"
+        width_cm:
+          type: number
+          format: float
+          example: 1200.0
+        height_cm:
+          type: number
+          format: float
+          example: 800.0
+
+    UpdateHomeRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        address:
+          type: string
+        width_cm:
+          type: number
+          format: float
+        height_cm:
+          type: number
+          format: float
+
+    # — Room -----------------------------------------------------------------
+    Room:
+      type: object
+      properties:
+        id:
+          type: string
+        home_id:
+          type: string
+        name:
+          type: string
+          example: Living Room
+        room_type:
+          type: string
+          enum:
+            - living_room
+            - bedroom
+            - kitchen
+            - bathroom
+            - hallway
+            - balcony
+            - office
+            - other
+        x:
+          type: number
+          format: float
+          description: X offset on the floorplan (cm).
+        y:
+          type: number
+          format: float
+          description: Y offset on the floorplan (cm).
+        width_cm:
+          type: number
+          format: float
+        height_cm:
+          type: number
+          format: float
+        color:
+          type: string
+          description: Hex colour used in the visualiser.
+          example: "#A3D9FF"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateRoomRequest:
+      type: object
+      required: [home_id, name, room_type, x, y, width_cm, height_cm]
+      properties:
+        home_id:
+          type: string
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Living Room
+        room_type:
+          type: string
+          enum:
+            - living_room
+            - bedroom
+            - kitchen
+            - bathroom
+            - hallway
+            - balcony
+            - office
+            - other
+        x:
+          type: number
+          format: float
+        y:
+          type: number
+          format: float
+        width_cm:
+          type: number
+          format: float
+        height_cm:
+          type: number
+          format: float
+        color:
+          type: string
+          example: "#A3D9FF"
+
+    UpdateRoomRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        room_type:
+          type: string
+          enum:
+            - living_room
+            - bedroom
+            - kitchen
+            - bathroom
+            - hallway
+            - balcony
+            - office
+            - other
+        x:
+          type: number
+          format: float
+        y:
+          type: number
+          format: float
+        width_cm:
+          type: number
+          format: float
+        height_cm:
+          type: number
+          format: float
+        color:
+          type: string
+
+    # — Device ---------------------------------------------------------------
+    Device:
+      type: object
+      properties:
+        id:
+          type: string
+        room_id:
+          type: string
+        name:
+          type: string
+          example: Ceiling Light
+        device_type:
+          type: string
+          enum:
+            - light
+            - switch
+            - thermostat
+            - coffee_machine
+            - speaker
+            - camera
+            - sensor
+            - robot_vacuum
+            - other
+        manufacturer:
+          type: string
+          example: Philips
+        model:
+          type: string
+          example: Hue Go
+        mqtt_topic:
+          type: string
+          description: MQTT topic for command / state.
+          example: home/living_room/light/ceiling
+        state:
+          type: object
+          additionalProperties: true
+          description: Free-form device state (on/off, brightness, temperature…).
+          example:
+            power: "on"
+            brightness: 80
+        x:
+          type: number
+          format: float
+          description: X position inside the room (cm).
+        y:
+          type: number
+          format: float
+          description: Y position inside the room (cm).
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateDeviceRequest:
+      type: object
+      required: [room_id, name, device_type]
+      properties:
+        room_id:
+          type: string
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        device_type:
+          type: string
+          enum:
+            - light
+            - switch
+            - thermostat
+            - coffee_machine
+            - speaker
+            - camera
+            - sensor
+            - robot_vacuum
+            - other
+        manufacturer:
+          type: string
+        model:
+          type: string
+        mqtt_topic:
+          type: string
+        x:
+          type: number
+          format: float
+        y:
+          type: number
+          format: float
+
+    UpdateDeviceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        device_type:
+          type: string
+          enum:
+            - light
+            - switch
+            - thermostat
+            - coffee_machine
+            - speaker
+            - camera
+            - sensor
+            - robot_vacuum
+            - other
+        manufacturer:
+          type: string
+        model:
+          type: string
+        mqtt_topic:
+          type: string
+        x:
+          type: number
+          format: float
+        y:
+          type: number
+          format: float
+
+    DeviceCommandRequest:
+      type: object
+      required: [command]
+      properties:
+        command:
+          type: string
+          description: Command name, e.g. "turn_on", "set_brightness".
+          example: turn_on
+        params:
+          type: object
+          additionalProperties: true
+          description: Optional command parameters.
+          example:
+            brightness: 100
+
+    DeviceCommandResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+          example: Command published to MQTT topic.
+
+    # — Robot Task -----------------------------------------------------------
+    RobotTask:
+      type: object
+      properties:
+        id:
+          type: string
+        home_id:
+          type: string
+        device_id:
+          type: string
+          description: The robot vacuum device used.
+        mode:
+          type: string
+          enum: [full_flat, room, spot]
+        target_room_ids:
+          type: array
+          items:
+            type: string
+          description: Rooms to clean (empty = full flat).
+        status:
+          type: string
+          enum: [pending, running, paused, completed, failed, cancelled]
+        progress_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        path:
+          type: array
+          items:
+            $ref: "#/components/schemas/Point2D"
+          description: Ordered list of waypoints the robot has visited.
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    CreateRobotTaskRequest:
+      type: object
+      required: [home_id, device_id, mode]
+      properties:
+        home_id:
+          type: string
+        device_id:
+          type: string
+        mode:
+          type: string
+          enum: [full_flat, room, spot]
+        target_room_ids:
+          type: array
+          items:
+            type: string
+
+    Point2D:
+      type: object
+      properties:
+        x:
+          type: number
+          format: float
+        y:
+          type: number
+          format: float
+
+    # — Scene ----------------------------------------------------------------
+    Scene:
+      type: object
+      properties:
+        id:
+          type: string
+        home_id:
+          type: string
+        name:
+          type: string
+          example: Movie Night
+        description:
+          type: string
+          example: Dim lights, turn on TV, close blinds.
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SceneAction"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SceneAction:
+      type: object
+      required: [device_id, command]
+      properties:
+        device_id:
+          type: string
+        command:
+          type: string
+          example: turn_on
+        params:
+          type: object
+          additionalProperties: true
+          example:
+            brightness: 20
+
+    CreateSceneRequest:
+      type: object
+      required: [home_id, name, actions]
+      properties:
+        home_id:
+          type: string
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        description:
+          type: string
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SceneAction"
+          minItems: 1
+
+    UpdateSceneRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SceneAction"
+
+    SceneActivateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        actions_executed:
+          type: integer
+          example: 3
+
+    # — Automation -----------------------------------------------------------
+    Automation:
+      type: object
+      properties:
+        id:
+          type: string
+        home_id:
+          type: string
+        name:
+          type: string
+          example: Morning Coffee
+        enabled:
+          type: boolean
+        trigger:
+          $ref: "#/components/schemas/AutomationTrigger"
+        conditions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AutomationCondition"
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SceneAction"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AutomationTrigger:
+      type: object
+      required: [trigger_type]
+      properties:
+        trigger_type:
+          type: string
+          enum: [time, device_state, mqtt_message]
+        cron:
+          type: string
+          description: Cron expression (for time triggers).
+          example: "0 7 * * 1-5"
+        device_id:
+          type: string
+          description: Device to watch (for device_state triggers).
+        mqtt_topic:
+          type: string
+          description: Topic to subscribe (for mqtt_message triggers).
+        state_match:
+          type: object
+          additionalProperties: true
+          description: Key-value pairs the device state must match.
+
+    AutomationCondition:
+      type: object
+      required: [condition_type]
+      properties:
+        condition_type:
+          type: string
+          enum: [time_range, device_state, weekday]
+        start_time:
+          type: string
+          format: time
+          example: "06:00"
+        end_time:
+          type: string
+          format: time
+          example: "09:00"
+        device_id:
+          type: string
+        state_match:
+          type: object
+          additionalProperties: true
+        weekdays:
+          type: array
+          items:
+            type: string
+            enum: [mon, tue, wed, thu, fri, sat, sun]
+
+    CreateAutomationRequest:
+      type: object
+      required: [home_id, name, trigger, actions]
+      properties:
+        home_id:
+          type: string
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        enabled:
+          type: boolean
+          default: true
+        trigger:
+          $ref: "#/components/schemas/AutomationTrigger"
+        conditions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AutomationCondition"
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SceneAction"
+          minItems: 1
+
+    UpdateAutomationRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        enabled:
+          type: boolean
+        trigger:
+          $ref: "#/components/schemas/AutomationTrigger"
+        conditions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AutomationCondition"
+        actions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SceneAction"
+
+    # — Shared / Error -------------------------------------------------------
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Resource not found.
+        code:
+          type: string
+          example: NOT_FOUND
+
+    PaginatedList:
+      type: object
+      description: Generic paginated wrapper (used in list endpoints).
+      properties:
+        items:
+          type: array
+          items: {}
+        total:
+          type: integer
+          example: 42
+        page:
+          type: integer
+          example: 1
+        per_page:
+          type: integer
+          example: 20
+
+  # ---- Reusable Parameters -------------------------------------------------
+  parameters:
+    PathId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Resource identifier (MongoDB ObjectId hex string).
+
+    QueryPage:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+
+    QueryPerPage:
+      name: per_page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  # ---- Reusable Responses --------------------------------------------------
+  responses:
+    BadRequest:
+      description: Validation error or malformed request body.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    Unauthorized:
+      description: Missing or invalid JWT token.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    NotFound:
+      description: Resource not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+paths:
+  # ── Auth ─────────────────────────────────────────────────────────────────
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: User created successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login and obtain a JWT token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ── Homes ────────────────────────────────────────────────────────────────
+  /api/homes:
+    get:
+      tags: [Homes]
+      summary: List homes for the authenticated user
+      parameters:
+        - $ref: "#/components/parameters/QueryPage"
+        - $ref: "#/components/parameters/QueryPerPage"
+      responses:
+        "200":
+          description: Paginated list of homes.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedList"
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Home"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Homes]
+      summary: Create a new home
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateHomeRequest"
+      responses:
+        "201":
+          description: Home created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Home"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/homes/{id}:
+    parameters:
+      - $ref: "#/components/parameters/PathId"
+    get:
+      tags: [Homes]
+      summary: Get a home by ID
+      responses:
+        "200":
+          description: Home details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Home"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [Homes]
+      summary: Update a home
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateHomeRequest"
+      responses:
+        "200":
+          description: Home updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Home"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Homes]
+      summary: Delete a home
+      responses:
+        "200":
+          description: Home deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                    example: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Rooms ────────────────────────────────────────────────────────────────
+  /api/rooms:
+    get:
+      tags: [Rooms]
+      summary: List rooms (optionally filtered by home_id)
+      parameters:
+        - name: home_id
+          in: query
+          schema:
+            type: string
+          description: Filter rooms by home.
+        - $ref: "#/components/parameters/QueryPage"
+        - $ref: "#/components/parameters/QueryPerPage"
+      responses:
+        "200":
+          description: Paginated list of rooms.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedList"
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Room"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Rooms]
+      summary: Create a new room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRoomRequest"
+      responses:
+        "201":
+          description: Room created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/rooms/{id}:
+    parameters:
+      - $ref: "#/components/parameters/PathId"
+    get:
+      tags: [Rooms]
+      summary: Get a room by ID
+      responses:
+        "200":
+          description: Room details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [Rooms]
+      summary: Update a room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRoomRequest"
+      responses:
+        "200":
+          description: Room updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Rooms]
+      summary: Delete a room
+      responses:
+        "200":
+          description: Room deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deleted:
+                    type: boolean
+                    example: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Devices ──────────────────────────────────────────────────────────────
+  /api/devices:
+    get:
+      tags: [Devices]
+      summary: List devices (optionally filtered by room_id)
+      parameters:
+        - name: room_id
+          in: query
+          schema:
+            type: string
+          description: Filter devices by room.
+        - $ref: "#/components/parameters/QueryPage"
+        - $ref: "#/components/parameters/QueryPerPage"
+      responses:
+        "200":
+          description: Paginated list of devices.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedList"
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Device"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Devices]
+      summary: Create a new device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDeviceRequest"
+      responses:
+        "201":
+          description: Device created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/devices/{id}/command:
+    parameters:
+      - $ref: "#/components/parameters/PathId"
+    post:
+      tags: [Devices]
+      summary: Send a command to a device via MQTT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeviceCommandRequest"
+      responses:
+        "200":
+          description: Command published successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceCommandResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Robot Tasks ──────────────────────────────────────────────────────────
+  /api/robot/tasks:
+    post:
+      tags: [Robot]
+      summary: Start a new robot cleaning task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRobotTaskRequest"
+      responses:
+        "201":
+          description: Task created and queued.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RobotTask"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/robot/tasks/{id}:
+    parameters:
+      - $ref: "#/components/parameters/PathId"
+    get:
+      tags: [Robot]
+      summary: Get robot task status
+      responses:
+        "200":
+          description: Task details and progress.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RobotTask"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Scenes ───────────────────────────────────────────────────────────────
+  /api/scenes:
+    get:
+      tags: [Scenes]
+      summary: List scenes (optionally filtered by home_id)
+      parameters:
+        - name: home_id
+          in: query
+          schema:
+            type: string
+          description: Filter scenes by home.
+        - $ref: "#/components/parameters/QueryPage"
+        - $ref: "#/components/parameters/QueryPerPage"
+      responses:
+        "200":
+          description: Paginated list of scenes.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedList"
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Scene"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Scenes]
+      summary: Create a new scene
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSceneRequest"
+      responses:
+        "201":
+          description: Scene created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Scene"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/scenes/{id}/activate:
+    parameters:
+      - $ref: "#/components/parameters/PathId"
+    post:
+      tags: [Scenes]
+      summary: Activate a scene (execute all its actions)
+      responses:
+        "200":
+          description: Scene activated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SceneActivateResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Automations ──────────────────────────────────────────────────────────
+  /api/automations:
+    get:
+      tags: [Automations]
+      summary: List automations (optionally filtered by home_id)
+      parameters:
+        - name: home_id
+          in: query
+          schema:
+            type: string
+          description: Filter automations by home.
+        - $ref: "#/components/parameters/QueryPage"
+        - $ref: "#/components/parameters/QueryPerPage"
+      responses:
+        "200":
+          description: Paginated list of automations.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedList"
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Automation"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Automations]
+      summary: Create a new automation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAutomationRequest"
+      responses:
+        "201":
+          description: Automation created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Automation"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+# ---------------------------------------------------------------------------
+# Tags
+# ---------------------------------------------------------------------------
+tags:
+  - name: Auth
+    description: User registration and authentication.
+  - name: Homes
+    description: CRUD operations for home floorplans.
+  - name: Rooms
+    description: CRUD operations for rooms within a home.
+  - name: Devices
+    description: Manage smart-home devices and send MQTT commands.
+  - name: Robot
+    description: Robot vacuum cleaner task management.
+  - name: Scenes
+    description: Predefined sets of device actions that can be activated together.
+  - name: Automations
+    description: Rule-based automations with triggers, conditions, and actions.
