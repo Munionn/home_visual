@@ -36,3 +36,12 @@ pub struct CreateAutomationRequest {
     pub triggers: Vec<AutomationTrigger>,
     pub actions: Vec<AutomationAction>,
 }
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct UpdateAutomationRequest {
+    pub home_id: Option<String>,
+    pub name: Option<String>,
+    pub enabled: Option<bool>,
+    pub triggers: Option<Vec<AutomationTrigger>>,
+    pub actions: Option<Vec<AutomationAction>>,
+}

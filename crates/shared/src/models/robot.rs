@@ -19,7 +19,7 @@ pub struct RobotTask {
 pub struct CreateRobotTaskRequest {
     pub robot_device_id: String,
     pub task_type: RobotTaskType,
-    pub target_room_id: Option<String>,
+    pub target_room_id: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

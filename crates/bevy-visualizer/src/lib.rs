@@ -3,7 +3,7 @@ use bevy::prelude::*;
 pub mod camera;
 pub mod floorplan;
 pub mod items;
-pub mod robot;
+pub mod robot_plugin;
 pub mod devices;
 pub mod bridge;
 
@@ -15,7 +15,7 @@ impl Plugin for HomeVisualizerPlugin {
             camera::CameraPlugin,
             floorplan::FloorplanPlugin,
             items::ItemsPlugin,
-            robot::RobotPlugin,
+            robot_plugin::RobotPlugin { robot_id: "robot_01".to_string() },
             devices::DevicesPlugin,
             bridge::BridgePlugin,
         ));

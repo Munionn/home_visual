@@ -1,5 +1,4 @@
 use actix_web::{HttpResponse, ResponseError};
-use serde_json::json;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -21,24 +20,42 @@ pub enum AppError {
 impl ResponseError for AppError {
     fn error_response(&self) -> HttpResponse {
         match self {
-            AppError::NotFound(ref msg) => HttpResponse::NotFound().json(json!({ "error": msg })),
-            AppError::BadRequest(ref msg) => HttpResponse::BadRequest().json(json!({ "error": msg })),
-            AppError::Unauthorized(ref msg) => HttpResponse::Unauthorized().json(json!({ "error": msg })),
-            AppError::InternalError(ref msg) => HttpResponse::InternalServerError().json(json!({ "error": msg })),
-            AppError::DatabaseError(ref msg) => HttpResponse::InternalServerError().json(json!({ "error": msg })),
-            AppError::MqttError(ref msg) => HttpResponse::ServiceUnavailable().json(json!({ "error": msg })),
+            AppError::NotFound(msg) => {
+                HttpResponse::NotFound().json(serde_json::json!({ "error": msg }))
+            }
+            AppError::BadRequest(msg) => {
+                HttpResponse::BadRequest().json(serde_json::json!({ "error": msg }))
+            }
+            AppError::Unauthorized(msg) => {
+                HttpResponse::Unauthorized().json(serde_json::json!({ "error": msg }))
+            }
+            AppError::InternalError(msg) => {
+                HttpResponse::InternalServerError().json(serde_json::json!({ "error": msg }))
+            }
+            AppError::DatabaseError(msg) => {
+                HttpResponse::InternalServerError().json(serde_json::json!({ "error": msg }))
+            }
+            AppError::MqttError(msg) => {
+                HttpResponse::ServiceUnavailable().json(serde_json::json!({ "error": msg }))
+            }
         }
     }
 }
-
 impl From<mongodb::error::Error> for AppError {
     fn from(err: mongodb::error::Error) -> Self {
         AppError::DatabaseError(err.to_string())
     }
 }
 
-impl From<anyhow::Error> for AppError {
+impl From<mongodb::bson::ser::Error> for AppError {
+    fn from(err: mongodb::bson::ser::Error) -> Self {
+        AppError::InternalError(err.to_string())
+    }
+}
+
+impl std::convert::From<anyhow::Error> for AppError {
     fn from(err: anyhow::Error) -> Self {
         AppError::InternalError(err.to_string())
     }
 }
+

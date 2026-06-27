@@ -2,8 +2,8 @@ use actix_web::{web, HttpResponse};
 use bcrypt::{hash, verify, DEFAULT_COST};
 use chrono::Utc;
 use mongodb::bson::doc;
-use shared::models::{AuthResponse, LoginRequest, RegisterRequest, User, UserPublic};
 use shared::enums::UserRole;
+use shared::models::{AuthResponse, LoginRequest, RegisterRequest, User, UserPublic};
 
 use crate::auth::create_token;
 use crate::errors::AppError;
@@ -14,18 +14,16 @@ pub async fn register(
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, AppError> {
     let collection = state.db.collection::<mongodb::bson::Document>("users");
-    
+
     // Check if email already registered
-    let existing = collection
-        .find_one(doc! { "email": &body.email })
-        .await?;
-        
+    let existing = collection.find_one(doc! { "email": &body.email }).await?;
+
     if existing.is_some() {
         return Err(AppError::BadRequest("Email is already in use".to_string()));
     }
 
-    let hashed_pw = hash(&body.password, DEFAULT_COST)
-        .map_err(|e| AppError::InternalError(e.to_string()))?;
+    let hashed_pw =
+        hash(&body.password, DEFAULT_COST).map_err(|e| AppError::InternalError(e.to_string()))?;
 
     let new_user = User {
         id: uuid::Uuid::new_v4().to_string(),
@@ -40,8 +38,13 @@ pub async fn register(
     let doc = mongodb::bson::to_document(&new_user)?;
     collection.insert_one(doc).await?;
 
-    let token = create_token(&new_user.id, "user", &state.config.jwt_secret, state.config.jwt_expiration_hours)
-        .map_err(|e| AppError::InternalError(e.to_string()))?;
+    let token = create_token(
+        &new_user.id,
+        "user",
+        &state.config.jwt_secret,
+        state.config.jwt_expiration_hours,
+    )
+    .map_err(|e| AppError::InternalError(e.to_string()))?;
 
     let public_user = UserPublic {
         id: new_user.id,
@@ -61,7 +64,7 @@ pub async fn login(
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, AppError> {
     let collection = state.db.collection::<User>("users");
-    
+
     let user = collection
         .find_one(doc! { "email": &body.email })
         .await?
@@ -79,8 +82,13 @@ pub async fn login(
         UserRole::User => "user",
     };
 
-    let token = create_token(&user.id, role_str, &state.config.jwt_secret, state.config.jwt_expiration_hours)
-        .map_err(|e| AppError::InternalError(e.to_string()))?;
+    let token = create_token(
+        &user.id,
+        role_str,
+        &state.config.jwt_secret,
+        state.config.jwt_expiration_hours,
+    )
+    .map_err(|e| AppError::InternalError(e.to_string()))?;
 
     let public_user = UserPublic {
         id: user.id,

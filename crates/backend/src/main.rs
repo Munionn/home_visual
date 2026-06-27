@@ -2,21 +2,20 @@ use actix_cors::Cors;
 use actix_web::{web, App, HttpServer};
 use tracing::info;
 
+mod auth;
 mod config;
 mod db;
-mod mqtt;
-mod auth;
 mod errors;
-mod state;
 mod handlers;
+mod mqtt;
 mod routes;
+mod state;
 
 use config::AppConfig;
 use state::AppState;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // Initialize tracing
     tracing_subscriber::fmt::init();
 
     info!("Starting Home Visual Backend Server...");

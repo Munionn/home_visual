@@ -31,8 +31,8 @@ pub enum DevicePowerState {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub enum RobotStatus {
     Idle,
-    Cleaning,
-    Returning,
+    Working,
+    Chilling,
     Charging,
     Error,
 }

@@ -17,10 +17,15 @@ anyhow = { workspace = true }
 
 actix-web = "4"
 actix-cors = "0.7"
-mongodb = { version = "3", features = ["bson-chrono-0_4", "bson-uuid-1"] }
+mongodb = "3.7.0"
 rumqttc = "0.24"
 dotenvy = "0.15"
 jsonwebtoken = "9"
 bcrypt = "0.16"
 utoipa = { version = "5", features = ["actix_extras"] }
 utoipa-swagger-ui = { version = "8", features = ["actix-web"] }
+futures-util = "0.3"
+
+[dev-dependencies]
+actix-http = "3"
+
