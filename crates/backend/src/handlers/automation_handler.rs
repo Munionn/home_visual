@@ -45,7 +45,7 @@ pub async fn get_automation(
 ) -> Result<HttpResponse, AppError> {
     let params = _path.into_inner();
     let collection = _state.db.collection::<Automation>("automations");
-    let filter = doc! {"id": params.automation_id, "home_id": params.home_id};
+    let filter = doc! {"_id": params.automation_id, "home_id": params.home_id};
     let automation = collection.find_one(filter).await?;
     Ok(HttpResponse::Ok().json(automation))
 }
@@ -124,7 +124,7 @@ pub async fn delete_automation(
 ) -> Result<HttpResponse, AppError> {
     let automation_id = Arc::new(_path.into_inner());
     let collection = _state.db.collection::<Automation>("automations");
-    let ft = doc! {"id": <std::string::String as Clone>::clone(&*automation_id)};
+    let ft = doc! {"_id": <std::string::String as Clone>::clone(&*automation_id)};
     let deleted_automation = collection.find_one_and_delete(ft).await?;
 
     match deleted_automation {
@@ -147,7 +147,7 @@ pub async fn toggle_automation(
     let automation_id = path.into_inner();
     let collection = state.db.collection::<Automation>("automations");
 
-    let filter = doc! { "id": &automation_id };
+    let filter = doc! { "_id": &automation_id };
 
     // Fetch the current state
     let automation = collection
